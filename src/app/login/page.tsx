@@ -21,27 +21,21 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) {
+      if (authError || !authData.user) {
         setError("Email atau kata sandi tidak sesuai. Silakan coba lagi.");
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Gagal masuk. Silakan coba lagi.");
-        return;
-      }
+      // Gunakan authData.user.id langsung, bukan getUser() lagi
+      const { data: userData, error: userError } = await supabase.from("users").select("role, status").eq("id", authData.user.id).single();
 
-      const { data: userData } = await supabase.from("users").select("role, status").eq("id", user.id).single();
-
-      if (!userData) {
+      if (userError || !userData) {
+        console.error("User fetch error:", userError);
         setError("Profil Anda tidak ditemukan.");
         return;
       }
